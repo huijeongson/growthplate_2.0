@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>성장판 어드민 - APP 버전 관리 (학습 APP)</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --sb-bg: #1e2330;
+    --sb-bg-2: #262b3a;
+    --sb-border: #2f3545;
+    --sb-text: #e7eaf0;
+    --sb-text-dim: #9aa3b2;
+    --sb-text-mute: #6b7280;
+    --sb-active: #2563eb;
+    --sb-active-bg: rgba(37, 99, 235, 0.18);
+    --bg: #ffffff;
+    --bg-soft: #f7f8fa;
+    --bg-hover: #f1f3f6;
+    --border: #e5e7eb;
+    --border-strong: #d1d5db;
+    --text: #111827;
+    --text-2: #374151;
+    --text-dim: #6b7280;
+    --text-mute: #9ca3af;
+    --primary: #2563eb;
+    --primary-hover: #1d4ed8;
+    --primary-soft: #eff6ff;
+    --link: #2563eb;
+    --danger: #dc2626;
+    --danger-soft: #fef2f2;
+    --warning: #d97706;
+    --warning-soft: #fffbeb;
+    --success: #059669;
+    --diff-bg: #fef3c7;
+    --diff-text: #92400e;
+  }
+  body {
+    font-family: "Pretendard", -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.5;
+    overflow: hidden;
+  }
+  .app { display: flex; flex-direction: column; height: 100vh; background: var(--bg); }
+
+  .top-header {
+    height: 56px;
+    background: var(--sb-bg);
+    color: var(--sb-text);
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--sb-border);
+  }
+  .top-header .brand { display: flex; flex-direction: column; gap: 2px; }
+  .top-header .brand-title { font-size: 13px; font-weight: 600; color: var(--sb-text); }
+  .top-header .brand-sub { font-size: 12px; color: var(--sb-text-dim); }
+  .top-header .actions { margin-left: auto; display: flex; gap: 8px; }
+  .top-header .btn-ghost {
+    padding: 6px 14px;
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.2);
+    color: var(--sb-text-dim);
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .top-header .btn-ghost:hover { background: rgba(255,255,255,0.06); color: var(--sb-text); }
+
+  .main { display: flex; flex: 1; min-height: 0; }
+
+  .sidebar {
+    width: 240px;
+    background: var(--sb-bg);
+    color: var(--sb-text);
+    overflow-y: auto;
+    flex-shrink: 0;
+    border-right: 1px solid var(--sb-border);
+  }
+  .sidebar .env-badge {
+    font-size: 11px;
+    color: #fbbf24;
+    padding: 14px 18px 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+  }
+  .sidebar .user {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 18px 18px;
+    border-bottom: 1px solid var(--sb-border);
+  }
+  .sidebar .avatar {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .sidebar .user-info { display: flex; flex-direction: column; min-width: 0; }
+  .sidebar .user-name { font-size: 13px; color: var(--sb-text); }
+  .sidebar .user-email { font-size: 11px; color: var(--sb-text-mute); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .menu { padding: 8px 0 40px; }
+  .menu-parent {
+    padding: 11px 20px;
+    font-size: 13px;
+    color: var(--sb-text);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
+  }
+  .menu-parent:hover { background: var(--sb-bg-2); }
+  .menu-parent .arrow { font-size: 10px; color: var(--sb-text-mute); transition: transform 0.15s; }
+  .menu-children { display: none; background: rgba(0,0,0,0.15); }
+  .menu-group.open .menu-children { display: block; }
+  .menu-group.open .menu-parent .arrow { transform: rotate(180deg); }
+  .menu-child {
+    padding: 9px 20px 9px 32px;
+    font-size: 13px;
+    color: var(--sb-text-dim);
+    cursor: pointer;
+  }
+  .menu-child:hover { background: var(--sb-bg-2); color: var(--sb-text); }
+  .menu-child.active {
+    color: #fff;
+    background: var(--sb-active-bg);
+    font-weight: 500;
+    position: relative;
+  }
+  .menu-child.active::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--sb-active);
+  }
+  .menu-child.new::after {
+    content: "NEW";
+    background: var(--success);
+    color: #fff;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 3px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+
+  .content {
+    flex: 1;
+    overflow-y: auto;
+    background: var(--bg);
+  }
+  .content-inner { padding: 32px 40px; }
+
+  .page-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+  .page-title { font-size: 24px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+  .page-title-underline { width: 240px; height: 2px; background: var(--primary); margin-bottom: 8px; }
+  .breadcrumb { font-size: 12px; color: var(--text-dim); margin-top: 14px; }
+  .breadcrumb span { color: var(--text-2); }
+  .breadcrumb .crumb-current { color: var(--text); font-weight: 500; }
+
+  .page-subinfo { font-size: 13px; color: var(--text-dim); margin-bottom: 24px; margin-top: 4px; }
+
+  .toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 24px 0 12px;
+  }
+  .toolbar-left { display: flex; gap: 12px; align-items: center; font-size: 13px; color: var(--text-dim); }
+
+  .btn {
+    padding: 9px 18px;
+    font-size: 13px;
+    font-weight: 500;
+    border-radius: 6px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    font-family: inherit;
+    transition: all 0.15s;
+    line-height: 1.2;
+  }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover:not(:disabled) { background: var(--primary-hover); }
+  .btn-primary:disabled { background: #cbd5e1; color: #fff; cursor: not-allowed; }
+  .btn-secondary { background: #fff; color: var(--text-2); border-color: var(--border-strong); }
+  .btn-secondary:hover { background: var(--bg-soft); }
+
+  .table-wrap { background: #fff; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    text-align: left;
+    padding: 14px 20px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-2);
+    background: var(--bg-soft);
+    border-bottom: 1px solid var(--border);
+    user-select: none;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  th:hover { background: var(--bg-hover); }
+  th .sort-icon { margin-left: 4px; color: var(--text-mute); font-size: 10px; }
+  th.sorted .sort-icon { color: var(--primary); }
+  td { padding: 16px 20px; font-size: 13px; color: var(--text-2); border-bottom: 1px solid var(--border); }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover td { background: var(--bg-soft); }
+  td.unset { color: var(--text-mute); }
+  tr.no-policy td { background: var(--warning-soft); }
+  tr.no-policy:hover td { background: #fef3c7; }
+  .version-link { color: var(--link); cursor: pointer; text-decoration: none; font-weight: 500; }
+  .version-link:hover { text-decoration: underline; }
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .badge-required { background: var(--danger-soft); color: var(--danger); border: 1px solid #fecaca; }
+  .badge-optional { background: var(--primary-soft); color: var(--primary); border: 1px solid #bfdbfe; }
+  .badge-empty { background: var(--warning-soft); color: var(--warning); border: 1px solid #fde68a; }
+
+  .pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 0;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+  .page-controls { display: flex; gap: 4px; align-items: center; }
+  .page-btn {
+    width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--text-2);
+    background: #fff;
+    border: 1px solid var(--border);
+  }
+  .page-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+  .page-btn:hover:not(.active) { background: var(--bg-soft); }
+
+  .form-card {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 32px 40px;
+    margin-top: 24px;
+  }
+  .form-row {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    align-items: flex-start;
+    gap: 24px;
+    padding: 18px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .form-row:last-of-type { border-bottom: none; }
+  .form-label { font-size: 13px; color: var(--text); font-weight: 500; padding-top: 10px; }
+  .form-label .req { color: var(--danger); margin-left: 4px; }
+  .form-input-wrap { display: flex; flex-direction: column; gap: 6px; }
+  .form-control {
+    background: #fff;
+    border: 1px solid var(--border-strong);
+    color: var(--text);
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: inherit;
+    width: 100%;
+    max-width: 560px;
+    outline: none;
+    transition: border 0.15s, box-shadow 0.15s;
+  }
+  .form-control:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12); }
+  .form-control.readonly, .form-control:disabled {
+    background: var(--bg-soft);
+    color: var(--text-dim);
+    cursor: not-allowed;
+  }
+  .form-control.short { max-width: 240px; }
+  textarea.form-control { min-height: 100px; max-width: 800px; resize: vertical; }
+  .form-hint { font-size: 12px; color: var(--text-mute); }
+  .form-error { font-size: 12px; color: var(--danger); display: none; }
+  .form-error.show { display: block; }
+  .form-control.error { border-color: var(--danger); }
+  .form-control.error:focus { box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12); }
+
+  .radio-group { display: flex; gap: 24px; padding-top: 6px; }
+  .radio { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; color: var(--text); }
+  .radio input { accent-color: var(--primary); width: 16px; height: 16px; cursor: pointer; }
+
+  .notice {
+    background: var(--danger-soft);
+    border: 1px solid #fecaca;
+    border-radius: 6px;
+    padding: 14px 18px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    margin-top: 20px;
+    max-width: 1100px;
+  }
+  .notice-icon { color: var(--danger); font-size: 16px; flex-shrink: 0; font-weight: 700; }
+  .notice-text { font-size: 13px; color: #991b1b; line-height: 1.6; }
+  .notice-text strong { color: var(--danger); }
+
+  .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 24px;
+  }
+
+  /* Modal */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(17, 24, 39, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  .modal-backdrop.show { opacity: 1; pointer-events: auto; }
+  .modal {
+    background: #fff;
+    border-radius: 10px;
+    width: 600px;
+    max-width: 90vw;
+    transform: translateY(10px);
+    transition: transform 0.2s;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.25);
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+  }
+  .modal-backdrop.show .modal { transform: translateY(0); }
+  .modal-head {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .modal-title { font-size: 16px; font-weight: 600; color: var(--text); }
+  .modal-close {
+    background: transparent;
+    border: none;
+    color: var(--text-dim);
+    font-size: 18px;
+    cursor: pointer;
+    width: 32px; height: 32px;
+    border-radius: 6px;
+  }
+  .modal-close:hover { background: var(--bg-soft); color: var(--text); }
+  .modal-body { padding: 24px; overflow-y: auto; }
+  .modal-intro { font-size: 14px; color: var(--text-2); margin-bottom: 16px; }
+  .modal-footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    flex-shrink: 0;
+  }
+  .modal-footer .btn { min-width: 100px; }
+
+  /* 변경 전후 비교 테이블 */
+  .diff-table {
+    width: 100%;
+    border-collapse: collapse;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .diff-table thead th {
+    background: var(--bg-soft);
+    padding: 10px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-2);
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    cursor: default;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  .diff-table thead th:hover { background: var(--bg-soft); }
+  .diff-table tbody td {
+    padding: 12px 14px;
+    font-size: 13px;
+    color: var(--text);
+    border-bottom: 1px solid var(--border);
+    background: #fff;
+  }
+  .diff-table tbody tr:last-child td { border-bottom: none; }
+  .diff-table tbody tr.changed td { background: var(--diff-bg); }
+  .diff-table tbody tr.changed td:first-child { color: var(--diff-text); font-weight: 600; }
+  .diff-table .col-label { color: var(--text-dim); width: 90px; font-size: 12px; }
+  .diff-table .val-before { color: var(--text-dim); text-decoration: line-through; }
+  .diff-table .val-after { color: var(--text); font-weight: 600; }
+  .diff-table tbody tr.changed .val-after { color: var(--diff-text); }
+  .diff-table .val-same { color: var(--text-mute); font-style: italic; font-size: 12px; }
+  .diff-table .multiline {
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: ui-monospace, "SF Mono", monospace;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  /* 안전장치 영역 */
+  .safety-box {
+    margin-top: 20px;
+    padding: 16px 18px;
+    background: var(--danger-soft);
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+  }
+  .safety-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--danger);
+    margin-bottom: 12px;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+  .safety-check {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 8px 0;
+    font-size: 13px;
+    color: #7f1d1d;
+    cursor: pointer;
+    line-height: 1.5;
+  }
+  .safety-check input {
+    margin-top: 3px;
+    accent-color: var(--danger);
+    width: 16px; height: 16px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .safety-check strong { color: var(--danger); }
+
+  .toast {
+    position: fixed;
+    top: 80px;
+    right: 24px;
+    background: #fff;
+    border: 1px solid var(--success);
+    color: var(--success);
+    padding: 14px 22px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    transform: translateX(120%);
+    transition: transform 0.3s;
+    z-index: 200;
+  }
+  .toast.show { transform: translateX(0); }
+
+  .page { display: none; }
+  .page.active { display: block; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top-header">
+    <div class="brand">
+      <div class="brand-title">exhibitions/version</div>
+      <div class="brand-sub">Previewing v1.0.1 (Live)</div>
+    </div>
+    <div class="actions">
+      <button class="btn-ghost">Share</button>
+      <button class="btn-ghost">Edit app</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="sidebar">
+      <div class="env-badge">staging</div>
+      <div class="user">
+        <div class="avatar">희</div>
+        <div class="user-info">
+          <span class="user-name">희정 손</span>
+          <span class="user-email">huijeong_son@daekyo.com</span>
+        </div>
+      </div>
+      <nav class="menu">
+        <div class="menu-group">
+          <div class="menu-parent" onclick="toggleMenu(this)">배너관리<span class="arrow">▾</span></div>
+          <div class="menu-children">
+            <div class="menu-child">로그인 배너</div>
+            <div class="menu-child">마이클래스 상단배너</div>
+            <div class="menu-child">마이클래스 목록배너</div>
+          </div>
+        </div>
+        <div class="menu-group open">
+          <div class="menu-parent" onclick="toggleMenu(this)">전시관리<span class="arrow">▾</span></div>
+          <div class="menu-children">
+            <div class="menu-child">공지사항관리</div>
+            <div class="menu-child">팝업관리</div>
+            <div class="menu-child">슬라이드 메뉴관리</div>
+            <div class="menu-child">메세지관리</div>
+            <div class="menu-child">App 버전관리 (성장판 APP)</div>
+            <div class="menu-child active new" onclick="goPage('list')">App 버전관리 (학습 APP)</div>
+            <div class="menu-child">앱 메뉴 관리</div>
+          </div>
+        </div>
+        <div class="menu-group">
+          <div class="menu-parent" onclick="toggleMenu(this)">성장 배지 관리<span class="arrow">▾</span></div>
+          <div class="menu-children"><div class="menu-child">배지 정책</div></div>
+        </div>
+        <div class="menu-group">
+          <div class="menu-parent" onclick="toggleMenu(this)">학습관리<span class="arrow">▾</span></div>
+          <div class="menu-children">
+            <div class="menu-child">성장판상품 관리</div>
+            <div class="menu-child">드림스 상품</div>
+            <div class="menu-child">설문관리</div>
+          </div>
+        </div>
+        <div class="menu-group">
+          <div class="menu-parent" onclick="toggleMenu(this)">코드관리<span class="arrow">▾</span></div>
+          <div class="menu-children"><div class="menu-child">시스템 코드</div></div>
+        </div>
+      </nav>
+    </div>
+
+    <div class="content">
+      <div class="content-inner">
+
+        <!-- ADMIN 01. 버전 목록 -->
+        <div class="page active" id="page-list">
+          <div class="page-header">
+            <div>
+              <div class="page-title">APP 버전 관리 (학습 APP)</div>
+              <div class="page-title-underline"></div>
+            </div>
+            <div class="breadcrumb"><span>전시관리</span> &gt; <span class="crumb-current">APP 버전 관리 (학습 APP)</span></div>
+          </div>
+
+          <div class="toolbar">
+            <div class="toolbar-left">
+              <span id="row-count">총 7건</span>
+              <span style="color: var(--text-mute);">|</span>
+              <span style="color: var(--text-mute);">관리 대상 학습 APP 7종 · 버전명 클릭 시 수정 화면 진입</span>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th onclick="sortBy('systemId')">systemId <span class="sort-icon">⇅</span></th>
+                  <th onclick="sortBy('name')">상품명 <span class="sort-icon">⇅</span></th>
+                  <th onclick="sortBy('version')">최신 버전 <span class="sort-icon">⇅</span></th>
+                  <th onclick="sortBy('required')">필수/미필수 <span class="sort-icon">⇅</span></th>
+                  <th onclick="sortBy('updatedAt')" class="sorted">최근 수정일 <span class="sort-icon">▼</span></th>
+                </tr>
+              </thead>
+              <tbody id="version-tbody"></tbody>
+            </table>
+          </div>
+
+          <div class="pagination">
+            <div>Showing 1-7 of 7</div>
+            <div class="page-controls">
+              <div class="page-btn">‹</div>
+              <div class="page-btn active">1</div>
+              <div style="color: var(--text-mute); padding: 0 6px;">of 1</div>
+              <div class="page-btn">›</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ADMIN 02. 버전 수정 -->
+        <div class="page" id="page-edit">
+          <div class="page-header">
+            <div>
+              <div class="page-title">APP 버전 관리 (학습 APP)</div>
+              <div class="page-title-underline"></div>
+              <div class="page-subinfo" id="edit-subinfo">써밋 스코어수학 · systemId 001 · 등록일 2026-05-13</div>
+            </div>
+            <div class="breadcrumb"><span>전시관리</span> &gt; <span>APP 버전 관리 (학습 APP)</span> &gt; <span class="crumb-current">수정</span></div>
+          </div>
+
+          <div class="form-card">
+            <div class="form-row">
+              <div class="form-label">학습 APP</div>
+              <div class="form-input-wrap">
+                <input class="form-control readonly" id="edit-systemName" readonly>
+                <div class="form-hint">systemId 기반 자동 매핑 (변경 불가)</div>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-label">PRD 패키지명</div>
+              <div class="form-input-wrap">
+                <input class="form-control readonly" id="edit-package" readonly>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-label">최신 버전 <span class="req">*</span></div>
+              <div class="form-input-wrap">
+                <input class="form-control short" id="edit-version" oninput="onEditChange()">
+                <div class="form-hint">SemVer 형식 (예: 3.2.1)</div>
+                <div class="form-error" id="edit-version-error"></div>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-label">업데이트 분류 <span class="req">*</span></div>
+              <div class="form-input-wrap">
+                <div class="radio-group">
+                  <label class="radio"><input type="radio" name="edit-required" value="필수" onchange="onEditChange()"> 필수</label>
+                  <label class="radio"><input type="radio" name="edit-required" value="미필수" onchange="onEditChange()"> 미필수(권장)</label>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-label">배포 내용</div>
+              <div class="form-input-wrap">
+                <textarea class="form-control" id="edit-notes" oninput="onEditChange()" placeholder="팝업 노출용 배포 내용"></textarea>
+              </div>
+            </div>
+
+            <div class="notice">
+              <span class="notice-icon">⚠</span>
+              <div class="notice-text">
+                <strong>주의:</strong> 미배포 버전을 '필수'로 등록 시 전체 사용자가 학습 APP 진입 불가합니다. 스토어 배포 완료 후 등록하세요.
+              </div>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button class="btn btn-secondary" onclick="goPage('list')">취소</button>
+            <button class="btn btn-primary" id="edit-submit-btn" onclick="openEditConfirm()" disabled>수정 완료</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN 03. 수정 확인 모달 -->
+<div class="modal-backdrop" id="confirm-modal" onclick="if(event.target===this)closeConfirm()">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">수정 내용 확인</div>
+      <button class="modal-close" onclick="closeConfirm()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-intro">다음 내용으로 버전 정책을 수정할까요?</div>
+
+      <table class="diff-table">
+        <thead>
+          <tr>
+            <th style="width: 90px;">항목</th>
+            <th>변경 전</th>
+            <th>변경 후</th>
+          </tr>
+        </thead>
+        <tbody id="diff-tbody"></tbody>
+      </table>
+
+      <div class="safety-box" id="safety-box" style="display: none;">
+        <div class="safety-title">⚠ 필수 업데이트 등록 - 사전 확인</div>
+        <label class="safety-check">
+          <input type="checkbox" id="safety-check-1" onchange="updateConfirmBtn()">
+          <span>이 버전이 <strong>Play Store에 실제 배포 완료</strong>되었음을 확인했습니다.</span>
+        </label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeConfirm()">취소</button>
+      <button class="btn btn-primary" id="confirm-submit" onclick="submitConfirm()">확인하고 수정</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">수정되었습니다</div>
+
+<script>
+  const APPS = [
+    { systemId: '001', name: '써밋 스코어수학', package: 'com.daekyo.score.math' },
+    { systemId: '003', name: '써밋 스피드수학', package: 'com.knowre.android.digitalmath.pro' },
+    { systemId: '005', name: '써밋 스코어국어', package: 'com.daekyo.summit.kr' },
+    { systemId: '006', name: '써밋 어휘력', package: 'com.daekyo.shinhanja.study' },
+    { systemId: '009', name: '써밋 스텝국어', package: 'com.daekyo.digistep.kr' },
+    { systemId: '010', name: '써밋 스텝영어', package: 'com.daekyo.digistep.en' },
+    { systemId: '011', name: '써밋 스텝영어 중등', package: 'com.knowre.android.hexagon.pro' }
+  ];
+
+  let versions = [
+    { systemId: '001', version: '3.2.1', required: '필수', notes: '- 신규 학습 모드 추가\n- 일부 학습 오류 수정\n- 성능 개선', createdAt: '2026-05-13', updatedBy: '희정 손', updatedAt: '2026-05-13 14:22' },
+    { systemId: '003', version: '2.5.0', required: '미필수', notes: '- UI 개선', createdAt: '2026-05-10', updatedBy: '희정 손', updatedAt: '2026-05-10 09:15' },
+    { systemId: '005', version: '1.8.3', required: '미필수', notes: '- 버그 수정', createdAt: '2026-05-08', updatedBy: '희정 손', updatedAt: '2026-05-08 17:40' },
+    { systemId: '006', version: '1.4.0', required: '필수', notes: '- 보안 패치', createdAt: '2026-05-12', updatedBy: '희정 손', updatedAt: '2026-05-12 11:05' },
+    { systemId: '009', version: null, required: null, notes: null, createdAt: null, updatedBy: null, updatedAt: null },
+    { systemId: '010', version: '1.2.1', required: '미필수', notes: '- 성능 개선', createdAt: '2026-05-09', updatedBy: '희정 손', updatedAt: '2026-05-09 13:20' },
+    { systemId: '011', version: '2.0.0', required: '필수', notes: '- 메이저 업데이트', createdAt: '2026-05-14', updatedBy: '희정 손', updatedAt: '2026-05-14 07:45' }
+  ];
+
+  let editingSystemId = null;
+  let editOriginal = null;
+  let pendingEdit = null;
+
+  function getApp(id) { return APPS.find(a => a.systemId === id); }
+  function getVersion(id) { return versions.find(v => v.systemId === id); }
+  function toggleMenu(el) { el.parentElement.classList.toggle('open'); }
+
+  function goPage(pageName, systemId) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page-' + pageName).classList.add('active');
+    document.querySelector('.content').scrollTop = 0;
+    if (pageName === 'list') renderList();
+    if (pageName === 'edit') loadEditForm(systemId);
+  }
+
+  // ---------- ADMIN 01 ----------
+  function renderList() {
+    const tbody = document.getElementById('version-tbody');
+    tbody.innerHTML = '';
+    versions.forEach(v => {
+      const app = getApp(v.systemId);
+      const hasPolicy = !!v.version;
+      const tr = document.createElement('tr');
+      if (!hasPolicy) tr.className = 'no-policy';
+      tr.innerHTML = `
+        <td>${v.systemId}</td>
+        <td>${app.name}</td>
+        <td>${hasPolicy
+          ? `<a class="version-link" onclick="goPage('edit', '${v.systemId}')">${v.version}</a>`
+          : `<a class="version-link" onclick="goPage('edit', '${v.systemId}')" style="color: var(--warning);">미등록</a>`}</td>
+        <td>${hasPolicy
+          ? (v.required === '필수' ? '<span class="badge badge-required">필수</span>' : '<span class="badge badge-optional">미필수</span>')
+          : '<span class="badge badge-empty">정책 없음</span>'}</td>
+        <td class="${hasPolicy ? '' : 'unset'}">${hasPolicy ? v.updatedAt : '—'}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+    document.getElementById('row-count').textContent = `총 ${versions.length}건`;
+  }
+
+  function sortBy(key) {
+    versions.sort((a, b) => {
+      const av = a[key] || ''; const bv = b[key] || '';
+      return av.toString().localeCompare(bv.toString());
+    });
+    renderList();
+  }
+
+  // ---------- ADMIN 02 ----------
+  function loadEditForm(systemId) {
+    editingSystemId = systemId;
+    const app = getApp(systemId);
+    let v = getVersion(systemId);
+
+    // 정책 미등록인 경우도 수정 폼에서 신규 입력처럼 열어줌
+    if (!v.version) {
+      editOriginal = { systemId, version: '', required: '미필수', notes: '', createdAt: null, updatedAt: null };
+    } else {
+      editOriginal = { ...v };
+    }
+
+    document.getElementById('edit-subinfo').textContent = editOriginal.createdAt
+      ? `${app.name} · systemId ${systemId} · 등록일 ${editOriginal.createdAt}`
+      : `${app.name} · systemId ${systemId} · 정책 미등록`;
+    document.getElementById('edit-systemName').value = `${app.name} (systemId: ${systemId})`;
+    document.getElementById('edit-package').value = app.package;
+    document.getElementById('edit-version').value = editOriginal.version || '';
+    document.querySelector(`input[name="edit-required"][value="${editOriginal.required || '미필수'}"]`).checked = true;
+    document.getElementById('edit-notes').value = editOriginal.notes || '';
+    document.getElementById('edit-submit-btn').disabled = true;
+    document.getElementById('edit-version-error').classList.remove('show');
+    document.getElementById('edit-version').classList.remove('error');
+  }
+
+  // ---------- 검증 로직 ----------
+  function compareSemver(a, b) {
+    // a > b 이면 1, a < b 이면 -1, 같으면 0. null/빈값이면 0
+    if (!a || !b) return 0;
+    const pa = a.split('.').map(n => parseInt(n, 10));
+    const pb = b.split('.').map(n => parseInt(n, 10));
+    for (let i = 0; i < 3; i++) {
+      if (pa[i] > pb[i]) return 1;
+      if (pa[i] < pb[i]) return -1;
+    }
+    return 0;
+  }
+
+  function validateVersion() {
+    const input = document.getElementById('edit-version');
+    const err = document.getElementById('edit-version-error');
+    const val = input.value.trim();
+
+    // 검증 1: 형식
+    if (val && !/^\d+\.\d+\.\d+$/.test(val)) {
+      input.classList.add('error');
+      err.textContent = '버전 형식이 올바르지 않습니다 (예: 3.2.1)';
+      err.classList.add('show');
+      return false;
+    }
+
+    // 검증 2: 역전 방지 (직전 등록 버전이 있을 때만)
+    if (val && editOriginal.version && compareSemver(val, editOriginal.version) < 0) {
+      input.classList.add('error');
+      err.textContent = `직전 등록 버전(${editOriginal.version})보다 낮은 값입니다. 버전을 확인해주세요.`;
+      err.classList.add('show');
+      return false;
+    }
+
+    input.classList.remove('error');
+    err.classList.remove('show');
+    return !!val;
+  }
+
+  function onEditChange() {
+    if (!editOriginal) return;
+    const version = document.getElementById('edit-version').value.trim();
+    const requiredEl = document.querySelector('input[name="edit-required"]:checked');
+    const required = requiredEl ? requiredEl.value : null;
+    const notes = document.getElementById('edit-notes').value;
+
+    const changed = version !== (editOriginal.version || '')
+                 || required !== (editOriginal.required || '미필수')
+                 || notes !== (editOriginal.notes || '');
+    const valid = validateVersion();
+    document.getElementById('edit-submit-btn').disabled = !(changed && valid);
+  }
+
+  // ---------- ADMIN 03 ----------
+  function openEditConfirm() {
+    if (!validateVersion()) return;
+    const version = document.getElementById('edit-version').value.trim();
+    const required = document.querySelector('input[name="edit-required"]:checked').value;
+    const notes = document.getElementById('edit-notes').value;
+
+    pendingEdit = { systemId: editingSystemId, version, required, notes };
+
+    // 변경 전후 비교 테이블 생성
+    const tbody = document.getElementById('diff-tbody');
+    tbody.innerHTML = '';
+
+    const rows = [
+      { label: '버전', before: editOriginal.version || '(미등록)', after: version },
+      { label: '분류', before: editOriginal.required || '(미등록)', after: required === '필수' ? '필수' : '미필수(권장)' },
+      { label: '배포 내용', before: editOriginal.notes || '(없음)', after: notes || '(없음)', multiline: true }
+    ];
+
+    rows.forEach(r => {
+      const changed = r.before !== r.after;
+      const tr = document.createElement('tr');
+      if (changed) tr.className = 'changed';
+      tr.innerHTML = `
+        <td class="col-label">${r.label}</td>
+        <td><span class="${changed ? 'val-before' : 'val-same'}${r.multiline ? ' multiline' : ''}">${escapeHtml(r.before)}</span></td>
+        <td>${changed
+          ? `<span class="val-after${r.multiline ? ' multiline' : ''}">${escapeHtml(r.after)}</span>`
+          : `<span class="val-same">변경 없음</span>`}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    // 분류 = '필수'인 경우 체크박스 안전장치 활성화
+    const isRequired = required === '필수';
+    const safetyBox = document.getElementById('safety-box');
+    const safetyCheck = document.getElementById('safety-check-1');
+    safetyCheck.checked = false;
+    safetyBox.style.display = isRequired ? 'block' : 'none';
+
+    updateConfirmBtn();
+    openConfirmModal();
+  }
+
+  function updateConfirmBtn() {
+    if (!pendingEdit) return;
+    const btn = document.getElementById('confirm-submit');
+    const isRequired = pendingEdit.required === '필수';
+    const safetyCheck = document.getElementById('safety-check-1');
+    btn.disabled = isRequired && !safetyCheck.checked;
+  }
+
+  function openConfirmModal() { document.getElementById('confirm-modal').classList.add('show'); }
+  function closeConfirm() { document.getElementById('confirm-modal').classList.remove('show'); }
+
+  function submitConfirm() {
+    const now = formatNow();
+    const today = now.slice(0, 10);
+    const p = pendingEdit;
+    const t = getVersion(p.systemId);
+    const wasUnset = !t.version;
+    t.version = p.version;
+    t.required = p.required;
+    t.notes = p.notes;
+    if (wasUnset) t.createdAt = today;
+    t.updatedBy = '희정 손';
+    t.updatedAt = now;
+    closeConfirm();
+    showToast('정책이 수정되었습니다');
+    goPage('list');
+  }
+
+  function formatNow() {
+    const d = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2200);
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  renderList();
+</script>
+</body>
+</html>
