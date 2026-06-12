@@ -161,6 +161,16 @@
     <div class="launch-app">써밋 스코어수학</div>
     <div class="spinner" id="launch-spinner"></div>
     <div class="launch-sub" id="launch-sub"></div>
+    <div class="pop-dim" id="pop-done">
+      <div class="pop">
+        <h3>업데이트 완료</h3>
+        <div class="msg">업데이트 완료했습니다.
+성장판으로 돌아가서 학습앱을 재실행해 주세요.</div>
+        <div class="btns">
+          <button class="btn-update" onclick="confirmDone()">확인</button>
+        </div>
+      </div>
+    </div>
     <div class="pop-dim" id="pop">
       <div class="pop">
         <h3>업데이트 안내</h3>
@@ -182,39 +192,47 @@
   const $ = id => document.getElementById(id);
   let updated = false; // 업데이트 완료 여부
 
+  let timers = [];
+  function later(fn, ms) { timers.push(setTimeout(fn, ms)); }
+  function clearTimers() { timers.forEach(clearTimeout); timers = []; }
+
   function show(id) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('on'));
     $(id).classList.add('on');
   }
 
-  // 마이클래스 진입 (로그인 후 / 업데이트 완료 후 복귀 공통)
   function goMyclass() {
+    clearTimers();
     show('scr-myclass');
   }
 
   // 세트 탭 → 학습앱 실행
   function launchApp() {
+    clearTimers();
     show('scr-launch');
     $('launch-label').textContent = '학습앱 실행';
     $('launch-sub').textContent = '';
     $('launch-spinner').classList.remove('hide');
     $('pop').classList.remove('on');
+    $('pop-done').classList.remove('on');
     if (updated) {
-      // 업데이트 완료 후 재실행 — 팝업 없이 학습앱 실행 (로딩 종료)
-      setTimeout(() => $('launch-spinner').classList.add('hide'), 1100);
+      // 최신 버전 — 팝업 없이 실행, 잠시 후 데모 초기화 복귀
+      later(() => $('launch-spinner').classList.add('hide'), 1100);
+      later(() => { updated = false; goMyclass(); }, 3200);
     } else {
-      setTimeout(() => $('pop').classList.add('on'), 1000);
+      later(() => $('pop').classList.add('on'), 1000);
     }
   }
 
-  // [나중에하기] → 성장판 마이클래스로 복귀
+  // [나중에하기] → 바로 마이클래스 복귀
   function laterAndRun() {
     $('pop').classList.remove('on');
     goMyclass();
   }
 
-  // [업데이트하기] → 업데이트 진행 화면 → 마이클래스 복귀 (업데이트는 시스템이 처리)
+  // [업데이트하기] → 업데이트 진행 화면 → 완료 모달
   function startUpdate() {
+    clearTimers();
     $('pop').classList.remove('on');
     $('launch-label').textContent = '업데이트 진행 중';
     $('launch-spinner').classList.remove('hide');
@@ -225,14 +243,21 @@
       if (p >= 100) {
         clearInterval(t);
         updated = true;
-        setTimeout(() => {
+        later(() => {
           $('launch-sub').textContent = '';
-          goMyclass();
-        }, 600);
+          $('launch-spinner').classList.add('hide');
+          $('pop-done').classList.add('on');
+        }, 500);
       }
     }, 280);
+    timers.push(t);
   }
 
+  // 완료 모달 [확인] → 성장판 마이클래스 복귀
+  function confirmDone() {
+    $('pop-done').classList.remove('on');
+    goMyclass();
+  }
 </script>
 </body>
 </html>
