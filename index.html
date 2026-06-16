@@ -182,18 +182,6 @@
     <div class="launch-sub" id="launch-sub"></div>
     <div class="launch-back" id="launch-back" onclick="goMyclass()">← 성장판으로</div>
 
-    <!-- 업데이트 완료 모달 (업데이트하기 공통) -->
-    <div class="pop-dim" id="pop-done">
-      <div class="pop">
-        <h3>업데이트 완료</h3>
-        <div class="msg">업데이트 완료했습니다.
-성장판으로 돌아가서 학습앱을 재실행해 주세요.</div>
-        <div class="btns">
-          <button class="btn-update" onclick="confirmDone()">확인</button>
-        </div>
-      </div>
-    </div>
-
     <!-- 미필수 업데이트 팝업 -->
     <div class="pop-dim" id="pop-optional">
       <div class="pop">
@@ -202,7 +190,7 @@
 원활한 이용을 위해 업데이트해 주세요.</div>
         <div class="btns">
           <button class="btn-later" onclick="laterRun()">나중에하기</button>
-          <button class="btn-update" onclick="doUpdate()">업데이트하기</button>
+          <button class="btn-update" onclick="optionalUpdate()">업데이트하기</button>
         </div>
       </div>
     </div>
@@ -214,7 +202,7 @@
         <div class="msg">필수 업데이트가 있습니다.
 업데이트 후 학습앱을 이용할 수 있습니다.</div>
         <div class="btns">
-          <button class="btn-update" onclick="doUpdate()">업데이트하기</button>
+          <button class="btn-update" onclick="forcedUpdate()">업데이트하기</button>
         </div>
       </div>
     </div>
@@ -250,7 +238,6 @@
   }
 
   function hideAllPops() {
-    $('pop-done').classList.remove('on');
     $('pop-optional').classList.remove('on');
     $('pop-forced').classList.remove('on');
   }
@@ -294,32 +281,15 @@
     runApp();
   }
 
-  // [업데이트하기] (미필수·필수 공통) → 업데이트 진행 → 완료 모달 → 성장판 복귀
-  function doUpdate() {
-    clearTimers();
-    hideAllPops();
-    $('launch-back').classList.remove('on');
-    $('launch-label').textContent = '업데이트 진행 중';
-    $('launch-spinner').classList.remove('hide');
-    let p = 0;
-    const t = setInterval(() => {
-      p = Math.min(100, p + Math.floor(Math.random() * 14) + 7);
-      $('launch-sub').textContent = p + '%';
-      if (p >= 100) {
-        clearInterval(t);
-        later(() => {
-          $('launch-sub').textContent = '';
-          $('launch-spinner').classList.add('hide');
-          $('pop-done').classList.add('on');
-        }, 500);
-      }
-    }, 280);
-    timers.push(t);
+  // [업데이트하기] (미필수) → 진행 과정 없이 즉시 성장판 복귀
+  function optionalUpdate() {
+    $('pop-optional').classList.remove('on');
+    goMyclass();
   }
 
-  // 완료 모달 [확인] → 성장판 복귀
-  function confirmDone() {
-    $('pop-done').classList.remove('on');
+  // [업데이트하기] (필수) → 진행 과정 없이 즉시 성장판 복귀
+  function forcedUpdate() {
+    $('pop-forced').classList.remove('on');
     goMyclass();
   }
 </script>
